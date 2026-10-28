@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THE UNRELIABLE ART CRITIC — Interactive Art Critique Experience</title>
+    <meta name="description" content="An interactive art critique experience with questionable authority. Upload your artwork, receive design critiques, and challenge the critic." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M2 12C6 6 18 6 22 12C18 18 6 18 2 12Z' stroke='%23D71920' stroke-width='2' fill='none'/><circle cx='12' cy='12' r='3' fill='%23D71920'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('CRITIC_THEME');
+          if (saved === 'day' || saved === 'night') {
+            document.documentElement.setAttribute('data-theme', saved);
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'night');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'day');
+          }
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'day');
+        }
+      })();
+    </script>
+  </head>
+  <body class="antialiased selection:bg-[#D71920] selection:text-white" style="background-color: var(--bg); color: var(--text);">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

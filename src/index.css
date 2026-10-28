@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DAY MODE (DEFAULT) */
+:root, [data-theme="day"] {
+  --bg: #F7F6F2;
+  --panel: #FFFFFF;
+  --text: #171717;
+  --muted: #737373;
+  --border: #252525;
+  --accent: #D71920;
+  --bubble: #FFFFFF;
+  color-scheme: light;
+}
+
+/* NIGHT MODE */
+[data-theme="night"] {
+  --bg: #111111;
+  --panel: #1A1A1A;
+  --text: #F5F5F5;
+  --muted: #A0A0A0;
+  --border: #3A3A3A;
+  --accent: #FF343B;
+  --bubble: #222222;
+  color-scheme: dark;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease;
+}
+
+/* NATURAL VIEWPORT SCROLLING */
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100%;
+  min-height: 100dvh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100%;
+  min-height: 100dvh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+::selection {
+  background-color: var(--accent);
+  color: #FFFFFF;
+}
+
+/* Compact internal panel scrollbars */
+.panel-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  opacity: 0.4;
+  border-radius: 9999px;
+}
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Never apply filters to uploaded artwork */
+.artwork-preserve {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Tactile Sticker Cards & Buttons */
+.sticker-card {
+  background-color: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 2px 2px 0px var(--border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 250ms ease, border-color 250ms ease;
+}
+
+/* Stagger reveal animations for seamless intro transition */
+.reveal-item {
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-hidden-down {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.reveal-hidden-up {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Artwork subtle fade & scale entrance */
+@keyframes artwork-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.anim-artwork-in {
+  animation: artwork-fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Step-based stage transition animation */
+@keyframes step-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.anim-step-enter {
+  animation: step-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes score-slam {
+  0% { transform: scale(1.8) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(0.96) rotate(-1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.anim-score-slam {
+  animation: score-slam 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.sticker-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background-color: var(--panel);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 1.5px 1.5px 0px var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sticker-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2.5px 2.5px 0px var(--accent);
+  border-color: var(--border);
+}
+
+.sticker-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0.5px 0.5px 0px var(--border);
+}
+
+.sticker-btn-accent {
+  background-color: var(--accent);
+  color: #FFFFFF;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 1.5px 1.5px 0px var(--border);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sticker-btn-accent:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2.5px 2.5px 0px var(--border);
+  opacity: 0.95;
+}
+
+.sticker-btn-accent:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0.5px 0.5px 0px var(--border);
+}
+
+/* Character Animations */
+@keyframes character-breathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.008, 0.992);
+  }
+}
+
+.anim-character-breathe {
+  animation: character-breathe 4s ease-in-out infinite;
+}
+
+@keyframes character-twitch {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.anim-character-twitch {
+  animation: character-twitch 0.3s ease-in-out;
+}
+
+@keyframes stamp-slam {
+  0% { transform: scale(2) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(0.96) rotate(-2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-3deg); opacity: 1; }
+}
+
+.anim-stamp-slam {
+  animation: stamp-slam 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.7); opacity: 0; }
+  80% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.anim-pop-in {
+  animation: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Easter Egg Glowing Eye Halo */
+@keyframes easter-egg-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px #D71920); }
+  50% { filter: drop-shadow(0 0 14px #FF343B); }
+}
+
+.anim-easter-egg {
+  animation: easter-egg-pulse 1s infinite alternate;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
