@@ -26,33 +26,64 @@
   color-scheme: dark;
 }
 
+/* SAFE AREA ENVIRONMENT VARIABLES */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease;
 }
 
-/* NATURAL VIEWPORT SCROLLING */
+/* NATIVE-LIKE MOBILE VIEWPORT SCROLLING & TOUCH BEHAVIOR */
 html, body {
   background-color: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  min-height: 100%;
-  min-height: 100dvh;
-  width: 100vw;
+  height: 100%;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
+  width: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 #root {
   min-height: 100%;
   min-height: 100dvh;
-  width: 100vw;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* Hide scrollbars while preserving touch scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding utilities */
+.safe-top-padding {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+.safe-bottom-padding {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
 ::selection {

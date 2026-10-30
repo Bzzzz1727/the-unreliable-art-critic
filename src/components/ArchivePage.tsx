@@ -124,7 +124,7 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search filename or feedback..."
-              className="pl-8 pr-3 py-1 text-xs font-mono rounded-xl border focus:outline-none focus:border-accent w-44 sm:w-56"
+              className="pl-8 pr-3 py-1.5 text-base sm:text-xs font-mono rounded-xl border focus:outline-none focus:border-accent w-44 sm:w-56 min-h-[36px]"
               style={{
                 backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
@@ -139,7 +139,7 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
             <select
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}
-              className="py-1 px-2 text-xs font-mono rounded-xl border focus:outline-none focus:border-accent"
+              className="py-1.5 px-2 text-base sm:text-xs font-mono rounded-xl border focus:outline-none focus:border-accent min-h-[36px]"
               style={{
                 backgroundColor: 'var(--bg)',
                 borderColor: 'var(--border)',
@@ -157,7 +157,7 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
           {records.length > 0 && (
             <button
               onClick={() => { playClick(); setConfirmClearOpen(true); }}
-              className="sticker-btn text-[10px] py-1 px-2.5 text-muted hover:text-accent"
+              className="sticker-btn text-[10px] py-1.5 px-2.5 text-muted hover:text-accent min-h-[36px]"
               title="Clear entire archive"
             >
               <Trash2 className="w-3 h-3 text-accent" />
@@ -167,17 +167,17 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
         </div>
       </div>
 
-      {/* Category Filter Pills */}
+      {/* Category Filter Pills (Horizontal touch scroll with no-scrollbar) */}
       <div
-        className="shrink-0 px-4 py-1.5 border-b flex items-center gap-1.5 overflow-x-auto panel-scroll"
+        className="shrink-0 px-4 py-1.5 border-b flex items-center gap-1.5 overflow-x-auto no-scrollbar"
         style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
       >
-        <span className="font-mono text-[9px] font-bold text-muted uppercase mr-1">CATEGORY:</span>
+        <span className="font-mono text-[9px] font-bold text-muted uppercase mr-1 shrink-0">CATEGORY:</span>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => { playClick(); setSelectedCategory(cat); }}
-            className={`font-mono text-[10px] px-2.5 py-0.5 rounded-lg border transition-all ${
+            className={`font-mono text-[10px] px-2.5 py-1 rounded-lg border transition-all whitespace-nowrap shrink-0 min-h-[30px] ${
               selectedCategory === cat
                 ? 'bg-text text-bg border-text font-bold shadow-sticker'
                 : 'bg-panel text-muted border-border hover:text-text'
@@ -188,8 +188,8 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
         ))}
       </div>
 
-      {/* Gallery Cards Grid */}
-      <div className="flex-1 min-h-0 overflow-y-auto panel-scroll p-4 sm:p-6">
+      {/* Gallery Cards Grid (Accommodates mobile bottom navigation) */}
+      <div className="flex-1 min-h-0 overflow-y-auto panel-scroll p-4 sm:p-6 pb-24 sm:pb-6">
         {isLoading ? (
           <div className="h-full flex items-center justify-center font-mono text-xs text-muted">
             LOADING SAVED EXHIBITION RECORDS...

@@ -212,7 +212,7 @@ export const UploadStep: React.FC<UploadStepProps> = ({
               Show me what you've made.
             </h3>
             <p className="font-sans text-xs text-muted max-w-xs">
-              Drop your art here or browse from your device
+              Drop art here or browse from your phone / photo library
             </p>
 
             <button
@@ -221,16 +221,16 @@ export const UploadStep: React.FC<UploadStepProps> = ({
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="sticker-btn mt-4 text-xs py-1.5 px-4 shadow-sticker hover:scale-105 active:scale-95"
+              className="sticker-btn mt-4 text-xs py-2 px-5 min-h-[42px] shadow-sticker hover:scale-105 active:scale-95"
             >
-              [ Choose artwork ]
+              [ Choose / Take Photo ]
             </button>
           </div>
         ) : (
-          /* Staged Artwork Preview: Occupies ~35–50% central stage width on desktop */
+          /* Staged Artwork Preview: Sized proportionally for phone and desktop */
           <div className="w-full flex flex-col items-center justify-center space-y-3">
             <div
-              className={`w-[45%] max-w-[280px] sm:max-w-[320px] max-h-[calc(100dvh-340px)] flex items-center justify-center p-2 rounded-xl border-2 shadow-sticker transition-opacity duration-200 ${
+              className={`w-[80%] max-w-[260px] sm:w-[45%] sm:max-w-[320px] max-h-[36vh] sm:max-h-[calc(100dvh-340px)] flex items-center justify-center p-2 rounded-xl border-2 shadow-sticker transition-opacity duration-200 ${
                 isCrossfading ? 'opacity-0 scale-95' : 'anim-artwork-in opacity-100 scale-100'
               }`}
               style={{
@@ -241,16 +241,16 @@ export const UploadStep: React.FC<UploadStepProps> = ({
               <img
                 src={previewUrl}
                 alt="Artwork preview"
-                className="artwork-preserve max-h-[calc(100dvh-360px)] max-w-full w-auto object-contain rounded-lg"
+                className="artwork-preserve max-h-[34vh] sm:max-h-[calc(100dvh-360px)] max-w-full w-auto object-contain rounded-lg"
               />
             </div>
 
             {/* Compact controls: Replace & Clear */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="sticker-btn py-1 px-2.5 text-[11px] flex items-center gap-1 text-text"
+                className="sticker-btn py-1.5 px-3 text-[11px] min-h-[36px] flex items-center gap-1 text-text"
               >
                 <RefreshCw className="w-3 h-3 text-muted" />
                 <span>[ REPLACE ]</span>
@@ -258,25 +258,25 @@ export const UploadStep: React.FC<UploadStepProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="sticker-btn py-1 px-2.5 text-[11px] flex items-center gap-1 text-accent"
+                className="sticker-btn py-1.5 px-3 text-[11px] min-h-[36px] flex items-center gap-1 text-accent"
               >
                 <X className="w-3 h-3" />
                 <span>[ CLEAR ]</span>
               </button>
-              <span className="font-mono text-[10px] text-muted">
+              <span className="font-mono text-[10px] text-muted block w-full text-center sm:inline sm:w-auto">
                 {fileName} ({fileSizeFormatted})
               </span>
             </div>
 
-            {/* Optional Statement & Category */}
-            <div className="w-full max-w-md flex items-center gap-2">
+            {/* Optional Statement & Category (Mobile-optimized input font size to prevent iOS zoom) */}
+            <div className="w-full max-w-md flex flex-col sm:flex-row items-stretch sm:items-center gap-2 px-1">
               <input
                 type="text"
                 maxLength={90}
                 value={statement}
                 onChange={(e) => setStatement(e.target.value)}
                 placeholder="Optional artist statement or context..."
-                className="flex-1 border rounded-xl px-3 py-1.5 text-xs font-sans placeholder-muted focus:outline-none focus:border-accent"
+                className="flex-1 border rounded-xl px-3 py-2 text-base sm:text-xs font-sans placeholder-muted focus:outline-none focus:border-accent min-h-[40px]"
                 style={{
                   backgroundColor: 'var(--panel)',
                   borderColor: 'var(--border)',
@@ -286,7 +286,7 @@ export const UploadStep: React.FC<UploadStepProps> = ({
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value as ArtworkCategory)}
-                className="border rounded-xl px-2.5 py-1.5 font-mono text-[11px] font-bold text-text focus:outline-none focus:border-accent cursor-pointer"
+                className="border rounded-xl px-2.5 py-2 font-mono text-base sm:text-[11px] font-bold text-text focus:outline-none focus:border-accent cursor-pointer min-h-[40px]"
                 style={{
                   backgroundColor: 'var(--panel)',
                   borderColor: 'var(--border)'
@@ -306,7 +306,7 @@ export const UploadStep: React.FC<UploadStepProps> = ({
       {/* Error Message if any */}
       {errorMessage && (
         <div
-          className="mb-2 p-1.5 rounded-xl font-mono text-[10px] text-center border"
+          className="mb-2 p-2 rounded-xl font-mono text-[10px] text-center border"
           style={{
             backgroundColor: 'var(--bg)',
             borderColor: 'var(--accent)',
@@ -320,18 +320,18 @@ export const UploadStep: React.FC<UploadStepProps> = ({
       {/* Bottom Row */}
       <div className="shrink-0 pt-2 border-t border-border flex flex-col items-center gap-2">
         {!previewUrl ? (
-          /* Samples Row */
-          <div className="flex items-center gap-1.5 text-[10px] font-mono">
-            <span className="text-muted flex items-center gap-1 font-bold">
+          /* Samples Row with horizontal scroll on mobile */
+          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-1.5 text-[10px] font-mono">
+            <span className="text-muted flex items-center gap-1 font-bold shrink-0">
               <Sparkles className="w-3 h-3 text-accent" />
               SAMPLES:
             </span>
-            <div className="flex items-center gap-1 flex-wrap justify-center">
+            <div className="w-full sm:w-auto flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-2 justify-start sm:justify-center">
               {SAMPLE_ARTWORKS.map((sample) => (
                 <button
                   key={sample.id}
                   onClick={() => handleSelectSample(sample.id)}
-                  className="sticker-btn py-0.5 px-2 text-[9px] text-text"
+                  className="sticker-btn py-1 px-2.5 text-[9px] text-text whitespace-nowrap shrink-0 min-h-[32px]"
                 >
                   [{sample.category.toUpperCase()}]
                 </button>
@@ -342,7 +342,7 @@ export const UploadStep: React.FC<UploadStepProps> = ({
           /* Prominent Decision Button */
           <button
             onClick={handleSubmit}
-            className="w-full max-w-md sticker-btn-accent text-sm py-2 px-6 flex items-center justify-center gap-2 shadow-sticker hover:scale-102 active:scale-98 transition-transform"
+            className="w-full max-w-md sticker-btn-accent text-sm sm:text-base py-3 px-6 min-h-[48px] flex items-center justify-center gap-2 shadow-sticker hover:scale-102 active:scale-98 transition-transform"
           >
             <span>[ LET THE CRITIC DECIDE ]</span>
             <ArrowRight className="w-4 h-4" />

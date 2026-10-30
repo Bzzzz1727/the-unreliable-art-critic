@@ -35,7 +35,7 @@ export const FullCritiqueModal: React.FC<FullCritiqueModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs select-none"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 bg-black/60 backdrop-blur-xs select-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           playClick();
@@ -44,24 +44,29 @@ export const FullCritiqueModal: React.FC<FullCritiqueModalProps> = ({
       }}
     >
       <div
-        className="w-full max-w-2xl border-2 rounded-2xl p-4 sm:p-6 shadow-sticker-lg anim-pop-in space-y-4 max-h-[88dvh] flex flex-col"
+        className="w-full max-w-2xl border-t-2 sm:border-2 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 shadow-sticker-lg anim-pop-in space-y-3 sm:space-y-4 max-h-[92dvh] sm:max-h-[88dvh] flex flex-col"
         style={{
           backgroundColor: 'var(--panel)',
-          borderColor: 'var(--border)'
+          borderColor: 'var(--border)',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
         }}
       >
+        {/* Mobile Drag Indicator Handle */}
+        <div className="w-10 h-1 rounded-full bg-border/80 mx-auto -mt-1 sm:hidden shrink-0" />
+
         {/* Header */}
         <div
           className="flex items-center justify-between border-b pb-2 font-mono text-xs shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-text">
-            <FileText className="w-4 h-4 text-accent" />
-            <span>FULL ART CRITIQUE DOSSIER // COMPREHENSIVE AUDIT</span>
+          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-text truncate">
+            <FileText className="w-4 h-4 text-accent shrink-0" />
+            <span className="truncate">CRITIQUE DOSSIER</span>
+            <span className="hidden sm:inline">// COMPREHENSIVE AUDIT</span>
           </div>
           <button
             onClick={() => { playClick(); onClose(); }}
-            className="text-muted hover:text-text p-1 rounded-lg transition-colors"
+            className="text-muted hover:text-text p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
             aria-label="Close Full Critique"
           >
             <X className="w-4 h-4" />

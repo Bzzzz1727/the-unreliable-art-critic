@@ -192,12 +192,12 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col anim-step-enter select-none max-w-3xl mx-auto space-y-3 pb-8 px-2 sm:px-4">
+    <div className="w-full flex flex-col anim-step-enter select-none max-w-3xl mx-auto space-y-3 pb-20 sm:pb-8 px-2 sm:px-4">
       {/* Top Banner: Floating Critic & Return to Verdict */}
       <div className="w-full flex items-center justify-between pb-2 border-b border-border">
         <button
           onClick={() => { playClick(); onReturnToVerdict(); }}
-          className="sticker-btn text-xs py-1 px-3 flex items-center gap-1.5 text-text"
+          className="sticker-btn text-xs py-1.5 px-3 min-h-[36px] flex items-center gap-1.5 text-text"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>[ RETURN TO VERDICT ]</span>
@@ -255,7 +255,7 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
                 value={defenseInput}
                 onChange={(e) => setDefenseInput(e.target.value)}
                 placeholder="e.g. 'The off-center weight is intentional tension to counter the heavy sans-serif type...'"
-                className="w-full border rounded-xl p-2.5 text-xs font-sans focus:outline-none focus:border-accent"
+                className="w-full border rounded-xl p-2.5 text-base sm:text-xs font-sans focus:outline-none focus:border-accent"
                 style={{
                   backgroundColor: 'var(--bg)',
                   borderColor: 'var(--border)',
@@ -270,7 +270,7 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
                 <button
                   type="submit"
                   disabled={!defenseInput.trim() || isSubmitting}
-                  className="sticker-btn-accent text-xs py-1.5 px-4 flex items-center gap-1.5"
+                  className="sticker-btn-accent text-xs py-2 px-4 min-h-[40px] flex items-center gap-1.5"
                 >
                   {isSubmitting ? (
                     <>
@@ -337,7 +337,7 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
                     key={promptText}
                     onClick={() => handleChallengeSubmit(promptText)}
                     disabled={isSubmitting}
-                    className="sticker-btn text-[10px] py-1 px-2.5 hover:border-accent"
+                    className="sticker-btn text-[10px] py-1.5 px-3 min-h-[36px] hover:border-accent"
                   >
                     “{promptText}”
                   </button>
@@ -352,7 +352,7 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
                 value={challengeInput}
                 onChange={(e) => setChallengeInput(e.target.value)}
                 placeholder="Draft your custom challenge..."
-                className="flex-1 border rounded-xl px-3 py-1.5 text-xs font-sans focus:outline-none focus:border-accent"
+                className="flex-1 border rounded-xl px-3 py-2 text-base sm:text-xs font-sans focus:outline-none focus:border-accent min-h-[42px]"
                 style={{
                   backgroundColor: 'var(--bg)',
                   borderColor: 'var(--border)',
@@ -368,9 +368,9 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
               <button
                 onClick={() => handleChallengeSubmit(challengeInput)}
                 disabled={!challengeInput.trim() || isSubmitting}
-                className="sticker-btn-accent px-3 py-1.5 text-xs flex items-center justify-center"
+                className="sticker-btn-accent px-4 py-2 text-xs flex items-center justify-center min-h-[42px]"
               >
-                <Send className="w-3 h-3" />
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>

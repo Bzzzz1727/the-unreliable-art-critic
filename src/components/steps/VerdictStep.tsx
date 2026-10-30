@@ -239,11 +239,11 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
         </div>
       )}
 
-      {/* 4 Category Tabs */}
-      <div className="flex items-center gap-1.5 pt-1">
+      {/* 4 Category Tabs (Horizontal touch scroll on mobile) */}
+      <div className="w-full max-w-xl flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 justify-start sm:justify-center px-1">
         <button
           onClick={() => { playClick(); setActiveTab('comp'); }}
-          className={`font-mono text-[10px] font-bold px-3 py-1 rounded-lg border transition-all ${
+          className={`font-mono text-[10px] font-bold px-3.5 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 min-h-[36px] flex items-center justify-center ${
             activeTab === 'comp'
               ? 'bg-text text-bg border-text shadow-sticker'
               : 'bg-panel text-muted border-border hover:text-text'
@@ -253,7 +253,7 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
         </button>
         <button
           onClick={() => { playClick(); setActiveTab('col'); }}
-          className={`font-mono text-[10px] font-bold px-3 py-1 rounded-lg border transition-all ${
+          className={`font-mono text-[10px] font-bold px-3.5 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 min-h-[36px] flex items-center justify-center ${
             activeTab === 'col'
               ? 'bg-text text-bg border-text shadow-sticker'
               : 'bg-panel text-muted border-border hover:text-text'
@@ -264,7 +264,7 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
         {critique.typography && (
           <button
             onClick={() => { playClick(); setActiveTab('type'); }}
-            className={`font-mono text-[10px] font-bold px-3 py-1 rounded-lg border transition-all ${
+            className={`font-mono text-[10px] font-bold px-3.5 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 min-h-[36px] flex items-center justify-center ${
               activeTab === 'type'
                 ? 'bg-text text-bg border-text shadow-sticker'
                 : 'bg-panel text-muted border-border hover:text-text'
@@ -275,7 +275,7 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
         )}
         <button
           onClick={() => { playClick(); setActiveTab('conc'); }}
-          className={`font-mono text-[10px] font-bold px-3 py-1 rounded-lg border transition-all ${
+          className={`font-mono text-[10px] font-bold px-3.5 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 min-h-[36px] flex items-center justify-center ${
             activeTab === 'conc'
               ? 'bg-text text-bg border-text shadow-sticker'
               : 'bg-panel text-muted border-border hover:text-text'
@@ -383,47 +383,47 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
       )}
 
       {/* Bottom Action Row: The 3 Primary Actions + Brutal Truth + New Artwork */}
-      <div className="w-full max-w-xl pt-3 border-t border-border flex items-center justify-center gap-2 flex-wrap">
+      <div className="w-full max-w-xl pt-3 border-t border-border grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center gap-2">
         <button
           onClick={() => { playClick(); onSelectAction('DEFEND'); }}
-          className="sticker-btn text-xs py-1.5 px-3 flex items-center gap-1.5 text-text hover:border-accent"
+          className="sticker-btn text-xs py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 text-text hover:border-accent w-full sm:w-auto"
         >
-          <Shield className="w-3.5 h-3.5 text-accent" />
+          <Shield className="w-3.5 h-3.5 text-accent shrink-0" />
           <span>[ DEFEND ]</span>
         </button>
 
         <button
           onClick={() => { playClick(); onSelectAction('CHALLENGE'); }}
-          className="sticker-btn text-xs py-1.5 px-3 flex items-center gap-1.5 text-text hover:border-accent"
+          className="sticker-btn text-xs py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 text-text hover:border-accent w-full sm:w-auto"
         >
-          <Flame className="w-3.5 h-3.5 text-accent" />
+          <Flame className="w-3.5 h-3.5 text-accent shrink-0" />
           <span>[ CHALLENGE ]</span>
         </button>
 
         <button
           onClick={() => { playClick(); onSelectAction('REDESIGN'); }}
-          className="sticker-btn text-xs py-1.5 px-3 flex items-center gap-1.5 text-text hover:border-accent"
+          className="sticker-btn text-xs py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 text-text hover:border-accent w-full sm:w-auto"
         >
-          <Layers className="w-3.5 h-3.5 text-accent" />
+          <Layers className="w-3.5 h-3.5 text-accent shrink-0" />
           <span>[ REDESIGN ]</span>
         </button>
 
         <button
           onClick={() => { playClick(); onSelectAction('BRUTAL_TRUTH'); }}
           disabled={isBrutalTruthLoading}
-          className={`sticker-btn text-xs py-1.5 px-3 flex items-center gap-1.5 text-text hover:border-accent ${
+          className={`sticker-btn text-xs py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 text-text hover:border-accent w-full sm:w-auto ${
             isBrutalTruthLoading ? 'opacity-70 cursor-wait' : ''
           }`}
           title="Direct, unvarnished art director critique"
         >
           {isBrutalTruthLoading ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-accent animate-spin shrink-0" />
               <span>[ ANALYSING... ]</span>
             </>
           ) : (
             <>
-              <Zap className="w-3.5 h-3.5 text-text" />
+              <Zap className="w-3.5 h-3.5 text-text shrink-0" />
               <span>[ BRUTAL TRUTH ]</span>
             </>
           )}
@@ -431,10 +431,10 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
 
         <button
           onClick={() => { playClick(); onNewArtwork(); }}
-          className="sticker-btn text-xs py-1.5 px-3 flex items-center gap-1.5 text-muted hover:text-text"
+          className="col-span-2 sm:col-span-1 sticker-btn text-xs py-2 px-3 min-h-[44px] flex items-center justify-center gap-1.5 text-muted hover:text-text w-full sm:w-auto"
           title="Upload or select another piece"
         >
-          <PlusCircle className="w-3.5 h-3.5 text-muted" />
+          <PlusCircle className="w-3.5 h-3.5 text-muted shrink-0" />
           <span>[ NEW ARTWORK ]</span>
         </button>
       </div>

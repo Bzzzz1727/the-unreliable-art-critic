@@ -47,12 +47,12 @@ export const RedesignStep: React.FC<RedesignStepProps> = ({
   const activeBrief = briefs ? briefs[selectedDirection] : null;
 
   return (
-    <div className="w-full flex flex-col anim-step-enter select-none max-w-4xl mx-auto space-y-3 pb-8 px-2 sm:px-4">
+    <div className="w-full flex flex-col anim-step-enter select-none max-w-4xl mx-auto space-y-3 pb-20 sm:pb-8 px-2 sm:px-4">
       {/* Top Banner: Return button + Floating Critic */}
       <div className="w-full flex items-center justify-between pb-2 border-b border-border">
         <button
           onClick={() => { playClick(); onReturnToVerdict(); }}
-          className="sticker-btn text-xs py-1 px-3 flex items-center gap-1.5 text-text"
+          className="sticker-btn text-xs py-1.5 px-3 min-h-[36px] flex items-center gap-1.5 text-text"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>[ RETURN TO VERDICT ]</span>

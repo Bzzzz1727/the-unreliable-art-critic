@@ -156,7 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs select-none"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5 bg-black/60 backdrop-blur-xs select-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           playClick();
@@ -165,13 +165,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
       }}
     >
       <div
-        className="relative w-full max-w-xl border-2 rounded-2xl p-4 sm:p-5 shadow-sticker-lg anim-pop-in space-y-4 max-h-[88dvh] flex flex-col"
+        className="relative w-full max-w-xl border-t-2 sm:border-2 rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 shadow-sticker-lg anim-pop-in space-y-3 sm:space-y-4 max-h-[92dvh] sm:max-h-[88dvh] flex flex-col"
         style={{
           backgroundColor: 'var(--panel)',
           borderColor: 'var(--border)',
-          color: 'var(--text)'
+          color: 'var(--text)',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
         }}
       >
+        {/* Mobile Drag Indicator Handle */}
+        <div className="w-10 h-1 rounded-full bg-border/80 mx-auto -mt-1 sm:hidden shrink-0" />
+
         {/* Header */}
         <div
           className="flex items-center justify-between border-b pb-2 font-mono text-xs shrink-0"
@@ -183,7 +187,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           </div>
           <button
             onClick={() => { playClick(); onClose(); }}
-            className="text-muted hover:text-text p-1"
+            className="text-muted hover:text-text p-1.5 rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+            aria-label="Close Settings"
           >
             <X className="w-4 h-4" />
           </button>
@@ -258,7 +263,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="AIzaSy..."
-                  className="flex-1 border-2 rounded-xl px-3 py-1.5 text-xs text-text font-mono focus:outline-none focus:border-accent"
+                  className="flex-1 border-2 rounded-xl px-3 py-2 text-base sm:text-xs text-text font-mono focus:outline-none focus:border-accent min-h-[40px]"
                   style={{
                     backgroundColor: 'var(--bg)',
                     borderColor: 'var(--border)'

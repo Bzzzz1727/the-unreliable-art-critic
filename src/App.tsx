@@ -26,6 +26,7 @@ import { FullCritiqueModal } from './components/FullCritiqueModal';
 import { ArchivePage } from './components/ArchivePage';
 import { SettingsModal } from './components/SettingsModal';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 const SESSION_STORAGE_KEY = 'UNRELIABLE_ART_CRITIC_SESSION';
 const THEME_STORAGE_KEY = 'CRITIC_THEME';
@@ -136,9 +137,13 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
 
-  // Apply data-theme attribute on document root immediately
+  // Apply data-theme attribute on document root and update mobile status bar color
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const metaTheme = document.getElementById('meta-theme-color');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', theme === 'night' ? '#111111' : '#F7F6F2');
+    }
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {}
@@ -476,7 +481,7 @@ export const App: React.FC = () => {
           />
         </div>
       ) : (
-        <main className="flex-1 w-full max-w-[1200px] mx-auto p-2 sm:p-4 flex flex-col items-center">
+        <main className="flex-1 w-full max-w-[1200px] mx-auto p-2 sm:p-4 pb-20 sm:pb-4 flex flex-col items-center">
           {/* STEP 2: WELCOME */}
           {currentStep === 'WELCOME' && (
             <WelcomeStep
@@ -596,6 +601,18 @@ export const App: React.FC = () => {
         isOpen={isResetConfirmOpen}
         onClose={() => setIsResetConfirmOpen(false)}
         onConfirm={handleResetSession}
+      />
+
+      {/* 5. MOBILE APP BOTTOM NAVIGATION BAR */}
+      <MobileBottomNav
+        currentRoute={route}
+        onNavigate={navigateTo}
+        hasArtwork={Boolean(currentArtwork && currentCritique)}
+        onOpenDossier={() => setIsDossierOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onReplayIntro={handleReplayIntro}
+        onReset={() => setIsResetConfirmOpen(true)}
+        theme={theme}
       />
     </div>
   );
