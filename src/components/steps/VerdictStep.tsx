@@ -139,14 +139,14 @@ export const VerdictStep: React.FC<VerdictStepProps> = ({
         >
           <div className="flex items-center gap-1.5">
             <Cpu className="w-3.5 h-3.5 text-muted shrink-0" />
-            <span>Local Canvas Telemetry Engine active. Enter your Gemini API Key in Settings for live AI Vision.</span>
+            <span>Autonomous Canvas Telemetry active (Offline Fallback Engine).</span>
           </div>
           {onOpenSettings && (
             <button
               onClick={() => { playClick(); onOpenSettings(); }}
               className="sticker-btn text-[9px] py-0.5 px-2 text-text shrink-0 ml-1.5"
             >
-              [ KEY ⚙ ]
+              [ ENGINE ⚙ ]
             </button>
           )}
         </div>

@@ -163,7 +163,7 @@ export const InteractionStep: React.FC<InteractionStepProps> = ({
       onExpressionChange('OFFENDED');
 
       const nextSt = Math.min(5, currentStage + 1) as CriticStage;
-      const res = await respondToChallenge(artwork, textToSend.trim(), currentStage);
+      const res = await respondToChallenge(artwork, textToSend.trim(), currentStage, currentCritique);
 
       onNewExchange(
         {

@@ -96,7 +96,7 @@ export const FullCritiqueModal: React.FC<FullCritiqueModalProps> = ({
                       ? 'text-accent bg-accent/10 border border-accent/20'
                       : 'text-text bg-border/40 border border-border'
                   }`}>
-                    {critique.engineSource === 'gemini_vision' ? '● AI VISION (GEMINI 2.0 FLASH)' : '○ AUTONOMOUS CANVAS TELEMETRY'}
+                    {critique.engineSource === 'gemini_vision' ? '● AI VISION (GEMINI 3.5 FLASH-LITE)' : '○ AUTONOMOUS CANVAS TELEMETRY'}
                   </span>
                 </div>
               </div>

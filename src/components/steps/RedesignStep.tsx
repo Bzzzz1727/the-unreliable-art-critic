@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Artwork, CriticStage, RedesignDirection } from '../../types';
+import { Artwork, CriticStage, RedesignDirection, CritiqueData } from '../../types';
 import { generateRedesignBrief } from '../../services/criticEngine';
 import { CriticPet, CharacterExpression } from '../CriticPet';
 import { playClick } from '../../utils/soundEffects';
@@ -8,6 +8,7 @@ import { ArrowLeft, Layers, Loader2, Sparkles, CheckCircle2 } from 'lucide-react
 interface RedesignStepProps {
   artwork: Artwork;
   currentStage: CriticStage;
+  currentCritique?: CritiqueData | null;
   onReturnToVerdict: () => void;
   speechText: string;
   forcedExpression: CharacterExpression | null;
@@ -19,6 +20,7 @@ interface RedesignStepProps {
 export const RedesignStep: React.FC<RedesignStepProps> = ({
   artwork,
   currentStage,
+  currentCritique,
   onReturnToVerdict,
   speechText,
   forcedExpression,
@@ -33,7 +35,7 @@ export const RedesignStep: React.FC<RedesignStepProps> = ({
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
-    generateRedesignBrief(artwork, currentStage)
+    generateRedesignBrief(artwork, currentStage, currentCritique || undefined)
       .then((data) => {
         if (isMounted) setBriefs(data);
       })
@@ -42,7 +44,7 @@ export const RedesignStep: React.FC<RedesignStepProps> = ({
         if (isMounted) setIsLoading(false);
       });
     return () => { isMounted = false; };
-  }, [artwork, currentStage]);
+  }, [artwork, currentStage, currentCritique]);
 
   const activeBrief = briefs ? briefs[selectedDirection] : null;
 

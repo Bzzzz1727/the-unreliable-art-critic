@@ -35,3 +35,4 @@ Thumbs.db
 # Temporary test screenshots and artifacts
 test_screenshots*
 inspect_welcome.cjs
+test-*.mjs

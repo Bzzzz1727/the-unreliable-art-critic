@@ -79,12 +79,14 @@ export interface CritiqueData {
   };
   biggestProblem?: {
     title: string;
+    observation?: string;
     evidence: string;
     consequence: string;
     fix: string;
   };
   otherIssues?: {
     title: string;
+    observation?: string;
     evidence: string;
     consequence?: string;
   }[];

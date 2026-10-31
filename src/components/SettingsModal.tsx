@@ -4,7 +4,6 @@ import {
   Sliders,
   CheckCircle,
   AlertTriangle,
-  Key,
   Cpu,
   ShieldCheck,
   Brain,
@@ -12,9 +11,9 @@ import {
   Edit2,
   Save,
   Check,
-  Info
+  Info,
+  Server
 } from 'lucide-react';
-import { getStoredApiKey, saveStoredApiKey } from '../services/criticEngine';
 import {
   getMemorySettings,
   saveMemorySettings,
@@ -29,15 +28,13 @@ import { playClick, playTrash } from '../utils/soundEffects';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApiKeyUpdated: () => void;
+  onApiKeyUpdated?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onApiKeyUpdated }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'engine' | 'memory'>('engine');
 
-  // Engine state
-  const [apiKeyInput, setApiKeyInput] = useState<string>('');
-  const [hasSavedKey, setHasSavedKey] = useState<boolean>(false);
+  // Engine test state
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testMessage, setTestMessage] = useState<string>('');
 
@@ -51,9 +48,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
   useEffect(() => {
     if (isOpen) {
-      const existing = getStoredApiKey();
-      setApiKeyInput(existing);
-      setHasSavedKey(Boolean(existing));
       setTestStatus('idle');
       setTestMessage('');
 
@@ -67,51 +61,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
 
   if (!isOpen) return null;
 
-  // Engine Handlers
-  const handleSaveKey = () => {
-    playClick();
-    saveStoredApiKey(apiKeyInput);
-    setHasSavedKey(Boolean(apiKeyInput.trim()));
-    onApiKeyUpdated();
-    setTestMessage('Configuration saved in browser localStorage.');
-    setTestStatus('success');
-  };
-
-  const handleClearKey = () => {
-    playClick();
-    saveStoredApiKey('');
-    setApiKeyInput('');
-    setHasSavedKey(false);
-    onApiKeyUpdated();
-    setTestMessage('Custom key cleared. Active: Local Neural Heuristic Engine.');
-    setTestStatus('idle');
-  };
-
+  // Server health test handler (calls serverless endpoint without any client credentials)
   const handleTestConnection = async () => {
-    if (!apiKeyInput.trim()) {
-      setTestStatus('error');
-      setTestMessage('Please input a Gemini API Key first.');
-      return;
-    }
-
     try {
       setTestStatus('testing');
-      setTestMessage('Pinging Google Generative Language API...');
+      setTestMessage('Checking server-side Gemini Vision API (/api/critique)...');
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKeyInput.trim()}`
-      );
+      const res = await fetch('/api/critique', {
+        method: 'GET'
+      });
 
       if (res.ok) {
+        const data = await res.json();
         setTestStatus('success');
-        setTestMessage('CONNECTION VERIFIED: Google Gemini API is accessible and authenticated.');
+        setTestMessage(`SERVER OPERATIONAL: Gemini Vision (${data.model || 'gemini-3.5-flash-lite'}) is active.`);
       } else {
+        const errJson = await res.json().catch(() => ({ error: res.statusText }));
         setTestStatus('error');
-        setTestMessage(`CONNECTION REJECTED (${res.status}): Verify that the key is valid.`);
+        setTestMessage(`SERVER NOTICE (${res.status}): ${errJson.error || 'Unable to connect to backend API.'}`);
       }
     } catch (e: any) {
       setTestStatus('error');
-      setTestMessage(`NETWORK ERROR: ${e?.message || 'Unable to reach Gemini API endpoint.'}`);
+      setTestMessage(`NETWORK ERROR: ${e?.message || 'Unable to reach backend /api/critique endpoint.'}`);
     }
   };
 
@@ -225,78 +196,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
           <div className="overflow-y-auto panel-scroll flex-1 space-y-4 pr-1 font-mono text-xs">
             {/* Active Pipeline Status */}
             <div
-              className="border-2 rounded-xl p-3 space-y-2"
+              className="border-2 rounded-xl p-3.5 space-y-3"
               style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
             >
-              <div className="flex items-center justify-between border-b pb-1.5" style={{ borderColor: 'var(--border)' }}>
-                <span className="text-[10px] text-muted uppercase">ACTIVE PIPELINE:</span>
+              <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+                <span className="text-[10px] text-muted uppercase font-bold tracking-wider">PIPELINE ARCHITECTURE:</span>
                 <span className="flex items-center gap-1.5 text-text font-bold text-[11px]">
-                  {hasSavedKey ? (
-                    <>
-                      <Key className="w-3.5 h-3.5 text-accent" />
-                      <span>GEMINI MULTIMODAL VISION API (CONNECTED)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Cpu className="w-3.5 h-3.5 text-accent" />
-                      <span>LOCAL AUTONOMOUS CANVAS ENGINE</span>
-                    </>
-                  )}
+                  <Cpu className="w-3.5 h-3.5 text-accent" />
+                  <span>SERVER-SIDE GEMINI VISION</span>
                 </span>
               </div>
 
-              <p className="font-sans text-[11px] text-muted leading-relaxed">
-                {hasSavedKey
-                  ? 'Transmits image base64 directly to Google Gemini 2.0 Flash for bespoke cloud vision analysis.'
-                  : 'Runs 100% locally in your browser. Samples canvas telemetry (luminance, contrast, dimensions, color histogram) with zero network calls and zero rate limits.'}
+              <div className="space-y-2 text-[11px] leading-relaxed">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Model:</span>
+                  <span className="font-bold text-text">Gemini 3.5 Flash-Lite</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Serverless Function:</span>
+                  <span className="font-mono text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">/api/critique</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Security:</span>
+                  <span className="text-text font-medium flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+                    Zero client keys • Server-side env only
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Abuse Guard:</span>
+                  <span className="text-text">IP rate limiting & concurrency protection</span>
+                </div>
+              </div>
+
+              <p className="font-sans text-[11px] text-muted leading-relaxed border-t pt-2" style={{ borderColor: 'var(--border)' }}>
+                All visitors automatically receive AI vision critiques powered by the secure server-side Gemini API. No personal API keys or browser storage configuration required.
               </p>
             </div>
 
-            {/* Gemini API Key Section */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold text-text uppercase">
-                GOOGLE GEMINI API KEY (OPTIONAL):
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="flex-1 border-2 rounded-xl px-3 py-2 text-base sm:text-xs text-text font-mono focus:outline-none focus:border-accent min-h-[40px]"
-                  style={{
-                    backgroundColor: 'var(--bg)',
-                    borderColor: 'var(--border)'
-                  }}
-                />
-                <button
-                  onClick={handleSaveKey}
-                  className="sticker-btn-accent text-xs py-1.5 px-3 shrink-0"
-                >
-                  SAVE
-                </button>
-                {hasSavedKey && (
-                  <button
-                    onClick={handleClearKey}
-                    className="sticker-btn text-xs py-1.5 px-2.5 shrink-0 text-accent"
-                  >
-                    CLEAR
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-muted pt-0.5">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-accent" />
-                  Saved strictly in your browser localStorage.
-                </span>
-                <button
-                  onClick={handleTestConnection}
-                  className="text-text underline font-bold hover:text-accent"
-                >
-                  [ TEST KEY ]
-                </button>
-              </div>
+            {/* Health check verification button */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-muted flex items-center gap-1">
+                <Server className="w-3 h-3 text-accent" />
+                Backend health status:
+              </span>
+              <button
+                onClick={handleTestConnection}
+                disabled={testStatus === 'testing'}
+                className="sticker-btn text-xs py-1 px-3 text-text font-bold hover:text-accent disabled:opacity-50"
+              >
+                {testStatus === 'testing' ? 'VERIFYING...' : '[ TEST SERVER HEALTH ]'}
+              </button>
             </div>
 
             {/* Test Result Message */}

@@ -10,27 +10,7 @@ import {
 import { getRelevantMemories, recordCritiqueToMemory } from './memoryStorage';
 import { saveArchiveRecord, getPriorArtworksByCategory, getArchiveRecordById } from './archiveStorage';
 
-const STORAGE_API_KEY = 'UNRELIABLE_CRITIC_GEMINI_API_KEY';
-
-export function getStoredApiKey(): string {
-  try {
-    return localStorage.getItem(STORAGE_API_KEY) || (import.meta.env.VITE_GEMINI_API_KEY as string) || '';
-  } catch {
-    return '';
-  }
-}
-
-export function saveStoredApiKey(key: string): void {
-  try {
-    if (key.trim()) {
-      localStorage.setItem(STORAGE_API_KEY, key.trim());
-    } else {
-      localStorage.removeItem(STORAGE_API_KEY);
-    }
-  } catch (err) {
-    console.error('Failed to save API key', err);
-  }
-}
+// criticEngine.ts - Evidence-based Art Director critique service connecting to server-side /api/critique
 
 /**
  * Ensures dataUrl is converted into valid raster base64 accepted by Gemini API (converts SVG to PNG if needed)
@@ -81,122 +61,35 @@ export async function ensureRasterBase64(dataUrl: string): Promise<{ mimeType: s
 }
 
 /**
- * Strip Markdown code fences from LLM output before JSON parsing
+ * Call the secure server-side Vercel API endpoint at /api/critique
  */
-function cleanJsonOutput(text: string): string {
-  let cleaned = text.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-  }
-  return cleaned;
-}
-
-/**
- * Multimodal call to Google Gemini 2.0 Flash
- */
-async function callGeminiApi(
-  prompt: string,
-  dataUrl: string,
-  apiKey: string,
-  forceJson: boolean = true
-): Promise<string> {
-  const { mimeType, base64 } = await ensureRasterBase64(dataUrl);
-
-  const hasValidImage = Boolean(base64 && base64.length > 50);
-  console.log(`[Gemini Vision Request] Model: gemini-2.0-flash, Image attached: ${hasValidImage} (MIME: ${mimeType}, Base64 Length: ${base64?.length || 0})`);
-
-  if (!hasValidImage) {
-    console.warn('[Gemini Vision Request] Warning: Image payload could not be extracted as valid raster base64. Vision analysis will be compromised.');
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-  // Image inlineData placed first for optimal vision model grounding
-  const bodyParts: any[] = [];
-  if (hasValidImage) {
-    bodyParts.push({
-      inlineData: {
-        mimeType: mimeType || 'image/png',
-        data: base64
-      }
-    });
-  }
-  bodyParts.push({ text: prompt });
-
-  const body = {
-    contents: [{ parts: bodyParts }],
-    generationConfig: {
-      temperature: 0.65,
-      maxOutputTokens: 2800,
-      responseMimeType: forceJson ? 'application/json' : 'text/plain'
-    }
-  };
-
-  const response = await fetch(url, {
+async function callBackendApi(
+  action: 'critique' | 'defend' | 'challenge' | 'brutal_truth' | 'redesign',
+  payload: any
+): Promise<any> {
+  const response = await fetch('/api/critique', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      action,
+      ...payload
+    })
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Gemini API Error] HTTP ${response.status}: ${errorText}`);
-    throw new Error(`Gemini API Error (${response.status}): ${errorText}`);
+    let errJson: any = null;
+    try {
+      errJson = await response.json();
+    } catch {
+      errJson = { error: await response.text() };
+    }
+    const message = errJson?.error || `Server Error (${response.status}): ${response.statusText}`;
+    throw new Error(message);
   }
 
-  const result = await response.json();
-  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error('Gemini API returned an empty response.');
-  }
-  return cleanJsonOutput(textOutput);
-}
-
-/**
- * Category-specific evaluation priorities to adapt critique intelligently
- */
-function getCategoryEvaluationFocus(category: ArtworkCategory): string {
-  switch (category) {
-    case 'Poster':
-      return `CATEGORY PRIORITIES (POSTER):
-- Communication hierarchy and readability from a viewing distance (the 2-second test).
-- Immediate focal point and natural visual entry path across the composition.
-- Audience engagement, viewing context, and margin breathing room.
-- DO NOT penalize bold display typography, intentional high contrast, or experimental headline scale.`;
-    case 'Album cover':
-      return `CATEGORY PRIORITIES (ALBUM COVER):
-- Conceptual resonance, atmosphere, distinctiveness, and memorable graphic hook.
-- Recognition and clarity at small streaming thumbnail scale (300x300 and smaller).
-- Harmonious relationship between imagery and typography (artist/title).
-- DO NOT penalize surrealism, grain, intentional distortion, or lack of poster-style informational copy.`;
-    case 'Branding':
-      return `CATEGORY PRIORITIES (BRANDING):
-- Distinctiveness, memorability, and visual consistency of identity marks.
-- Scalability across micro-applications (favicons, app icons) and large signage.
-- Clear-space margins, perimeter protection, and weight balance.
-- Suitability for intended brand tone and audience.`;
-    case 'Illustration':
-      return `CATEGORY PRIORITIES (ILLUSTRATION):
-- Shape language, silhouette clarity, and composition.
-- Value hierarchy, colour harmony, and expressive texture.
-- Visual storytelling and emotional resonance.
-- DO NOT penalize non-photorealistic anatomy, expressive distortion, flat perspective, or stylized geometry.`;
-    case 'Typography':
-      return `CATEGORY PRIORITIES (TYPOGRAPHY):
-- Letterform construction, kerning, tracking, and optical spacing.
-- Typographic hierarchy, scale ratios, and baseline rhythm.
-- Readability and stylistic consistency across glyph sets.`;
-    case 'Photography':
-      return `CATEGORY PRIORITIES (PHOTOGRAPHY):
-- Tonal range, exposure balance, and highlight/shadow detail.
-- Framing, cropping, and depth of field / focal isolation.
-- Visual narrative and intentional composition.`;
-    default:
-      return `CATEGORY PRIORITIES:
-- Visual hierarchy and clarity of communication.
-- Compositional equilibrium and intentional focal point.
-- Craft, execution, and palette discipline.`;
-  }
+  return response.json();
 }
 
 // =========================================================================
@@ -204,11 +97,8 @@ function getCategoryEvaluationFocus(category: ArtworkCategory): string {
 // =========================================================================
 export async function generateInitialCritique(
   artwork: Artwork,
-  stage: CriticStage,
-  customApiKey?: string
+  stage: CriticStage
 ): Promise<CritiqueData> {
-  const key = customApiKey || getStoredApiKey();
-
   // Retrieve contextual memories & prior artwork in same category
   const relevantMemories = getRelevantMemories(artwork.category, artwork.analysis);
   let priorArtworks: ArchiveRecord[] = [];
@@ -236,184 +126,62 @@ INSTRUCTIONS FOR CONTEXT:
   let resultCritique: CritiqueData | null = null;
   let apiErrorMessage: string | null = null;
 
-  if (key) {
-    try {
-      const prompt = `
-You are THE UNRELIABLE ART CRITIC. Act as an experienced art director and graphic design critic who evaluates the ACTUAL uploaded artwork.
-Artwork category: "${artwork.category}".
-Artist statement: "${artwork.statement || 'None provided'}".
-Visual telemetry: Aspect ratio ${artwork.analysis.aspectRatio}, Brightness: ${artwork.analysis.brightnessLevel}, Contrast: ${artwork.analysis.contrastLevel}, Dominant palette: ${artwork.analysis.dominantColors.join(', ')}.
-${memoryContextText}
-
-${getCategoryEvaluationFocus(artwork.category)}
-
-CRITICAL PRINCIPLES:
-1. EXAMINE THE ACTUAL ARTWORK:
-   - Your entire analysis must refer to specific visible elements in the uploaded image: examine actual headline text words, figure silhouettes, geometric shapes, exact colour contrasts, lighting/values, negative space, and typographic glyphs.
-   - For each issue, you must specify:
-     * OBSERVATION: What specifically is visible in this image?
-     * EVIDENCE: Where is it visible, and what concrete visual detail supports the claim?
-     * CONSEQUENCE: How does it affect the viewer's experience or the design's communicative impact?
-     * FIX: What precise change would improve it, if a change is actually needed? If the choice already works well, explicitly state that no change is necessary.
-   - FORBIDDEN GENERIC PLATITUDES: Do NOT output stock critique tropes like "structured geometric layout", "expand perimeter padding by 20px", "improve visual hierarchy", or "the composition lacks balance". Be specific to what is on the canvas.
-
-2. STOP MAKING UNSUPPORTED ASSUMPTIONS:
-   - Do NOT assume a centred composition is automatically good.
-   - Do NOT assume a cropped subject is automatically a mistake.
-   - Do NOT assume negative space is always insufficient or that every artwork needs more padding.
-   - Do NOT assume a limited palette automatically makes a design successful.
-   - Do NOT force conventional commercial advertising rules onto fine art, experimental typography, brutalist posters, or atmospheric album covers.
-   - Respect intentional asymmetry, unusual crops, visual tension, raw grain, and expressive dissonance when they support the concept.
-   - If you cannot confidently establish something from the image, state that uncertainty directly rather than inventing details.
-
-3. SCORE OUT OF 10:
-   - Provide an informed, defensible score out of 10 based on the artwork's apparent purpose and category rubric.
-   - Explain the primary justification in "scoreReason" using concrete visual evidence.
-   - Do NOT deduct points for unconventional or experimental choices.
-
-4. SEPARATE CHARACTER HUMOUR FROM PROFESSIONAL CRITIQUE:
-   - "unreliable": Short, witty, sarcastic 1-sentence remark matching personality stage ${stage}.
-   - "professional": Clear, direct, technically useful explanation without jargon or obscure metaphors.
-
-Return ONLY valid JSON matching this schema:
-{
-  "score": <number 1-10>,
-  "scoreReason": "<One direct sentence explaining the primary justification for the score with visual evidence>",
-  "firstImpression": {
-    "name": "FIRST IMPRESSION",
-    "score": <number 1-10>,
-    "professional": "<One specific, memorable sentence explaining the overall visual impact and result>",
-    "unreliable": "<short witty character comment matching personality stage ${stage}>"
-  },
-  "whatWorks": {
-    "title": "<Specific visual strength>",
-    "evidence": "<Concrete visual evidence from this image supporting this strength>"
-  },
-  "biggestProblem": {
-    "title": "<Single most consequential weakness, or 'None' if resolved>",
-    "evidence": "<Observed visible evidence in the artwork>",
-    "consequence": "<The design consequence / why it undermines the work>",
-    "fix": "<Concrete, specific, testable recommendation>"
-  },
-  "otherIssues": [
-    {
-      "title": "<Secondary material issue>",
-      "evidence": "<Observed visible evidence in the artwork>",
-      "consequence": "<Impact on design>"
+  try {
+    const { mimeType, base64 } = await ensureRasterBase64(artwork.dataUrl);
+    if (!base64 || base64.length < 50) {
+      throw new Error('Image could not be extracted as valid raster base64.');
     }
-  ],
-  "howToImprove": [
-    "<1st prioritized recommendation>",
-    "<2nd prioritized recommendation>"
-  ],
-  "whatToPreserve": "<The strongest existing design quality that must not be lost during revision>",
-  "composition": {
-    "name": "COMPOSITION",
-    "score": <number 1-10>,
-    "observation": "<Specific visual balance and hierarchy in this image>",
-    "evidence": "<Visible evidence in layout/spacing>",
-    "consequence": "<Impact on viewing experience>",
-    "fix": "<Specific adjustment or 'Preserve as is'>",
-    "professional": "<Observation. Evidence. Consequence. Fix.>",
-    "unreliable": "<short witty 1-sentence line>"
-  },
-  "colourAndTexture": {
-    "name": "COLOUR",
-    "score": <number 1-10>,
-    "observation": "<Specific palette relationships and contrast in this image>",
-    "evidence": "<Visible evidence of color values>",
-    "consequence": "<Impact on legibility/mood>",
-    "fix": "<Specific adjustment or 'Preserve as is'>",
-    "professional": "<Observation. Evidence. Consequence. Fix.>",
-    "unreliable": "<short witty 1-sentence line>"
-  },
-  "typography": ${
-    artwork.category === 'Typography' || artwork.category === 'Poster' || artwork.category === 'Branding'
-      ? `{
-    "name": "TYPE",
-    "score": <number 1-10>,
-    "observation": "<Type hierarchy and legibility in this image>",
-    "evidence": "<Visible evidence of font weights, scale or alignment>",
-    "consequence": "<Impact on reading order>",
-    "fix": "<Specific adjustment or 'Preserve as is'>",
-    "professional": "<Observation. Evidence. Consequence. Fix.>",
-    "unreliable": "<short witty 1-sentence line>"
-  }`
-      : `null`
-  },
-  "concept": {
-    "name": "CONCEPT",
-    "score": <number 1-10>,
-    "observation": "<Clarity of communication and message>",
-    "evidence": "<Visible evidence of conceptual execution>",
-    "consequence": "<Impact on audience interpretation>",
-    "fix": "<Specific refinement or 'Preserve as is'>",
-    "professional": "<Observation. Evidence. Consequence. Fix.>",
-    "unreliable": "<short witty 1-sentence line>"
-  },
-  "whatCouldImprove": {
-    "professional": "<The 2 most critical adjustments in order of impact>",
-    "unreliable": "<short witty remark>"
-  },
-  "verdict": {
-    "overallScore": <number 1-10 matching score above>,
-    "scoreReason": "<One direct sentence explaining the primary justification for the score with visual evidence>",
-    "firstImpression": "<One specific memorable sentence on overall visual impact>",
-    "whatWorks": "<Specific strengths supported by visible evidence>",
-    "biggestProblem": "<The single most consequential weakness with evidence>",
-    "otherIssues": ["<Additional issue if applicable>"],
-    "howToFixIt": "<One concrete, actionable recommendation>",
-    "whatToPreserve": "<Strongest existing quality that must not be lost>",
-    "professional": "<Consolidated editorial verdict>",
-    "unreliable": "<short witty character conclusion>"
-  }
-}
-`;
-      const rawJson = await callGeminiApi(prompt, artwork.dataUrl, key, true);
-      const parsed = JSON.parse(rawJson);
 
-      const parsedScore = parsed.score || parsed.verdict?.overallScore || 7;
-      const parsedReason = parsed.scoreReason || parsed.verdict?.scoreReason || "Evaluation based on visual hierarchy, contrast, and category priorities.";
+    const parsed = await callBackendApi('critique', {
+      image: { mimeType, base64 },
+      category: artwork.category,
+      statement: artwork.statement,
+      stage,
+      memoryContextText
+    });
 
-      resultCritique = {
-        ...parsed,
+    const parsedScore = typeof parsed.score === 'number' ? parsed.score : (parsed.verdict?.overallScore || 7);
+    const parsedReason = parsed.scoreReason || parsed.verdict?.scoreReason || "Evaluation based on visual hierarchy, contrast, and category priorities.";
+
+    resultCritique = {
+      ...parsed,
+      engineSource: 'gemini_vision',
+      score: parsedScore,
+      whatWorks: parsed.whatWorks || {
+        title: "Strong graphic clarity",
+        evidence: parsed.verdict?.whatWorks || "Consistent visual weight and palette harmony."
+      },
+      biggestProblem: parsed.biggestProblem || {
+        title: "Hierarchy contention",
+        observation: "Key visual elements compete across the field",
+        evidence: parsed.verdict?.biggestProblem || "Competing visual elements across the frame.",
+        consequence: "The viewer's gaze is fragmented rather than anchored.",
+        fix: parsed.verdict?.howToFixIt || "Clarify the primary focal point."
+      },
+      otherIssues: Array.isArray(parsed.otherIssues) ? parsed.otherIssues : [],
+      howToImprove: Array.isArray(parsed.howToImprove) && parsed.howToImprove.length > 0 ? parsed.howToImprove : [
+        parsed.biggestProblem?.fix || parsed.verdict?.howToFixIt || "Clarify the primary focal point."
+      ],
+      whatToPreserve: parsed.whatToPreserve || parsed.verdict?.whatToPreserve || "The underlying visual concept and core color tone.",
+      verdict: {
+        ...parsed.verdict,
         engineSource: 'gemini_vision',
-        score: parsedScore,
-        whatWorks: parsed.whatWorks || {
-          title: "Strong graphic clarity",
-          evidence: parsed.verdict?.whatWorks || "Consistent visual weight and palette harmony."
-        },
-        biggestProblem: parsed.biggestProblem || {
-          title: "Hierarchy contention",
-          evidence: parsed.verdict?.biggestProblem || "Competing visual elements across the frame.",
-          consequence: "The viewer's gaze is fragmented rather than anchored.",
-          fix: parsed.verdict?.howToFixIt || "Clarify the primary focal point."
-        },
-        otherIssues: Array.isArray(parsed.otherIssues) ? parsed.otherIssues : [],
-        howToImprove: Array.isArray(parsed.howToImprove) && parsed.howToImprove.length > 0 ? parsed.howToImprove : [
-          parsed.biggestProblem?.fix || parsed.verdict?.howToFixIt || "Clarify the primary focal point."
-        ],
-        whatToPreserve: parsed.whatToPreserve || parsed.verdict?.whatToPreserve || "The underlying visual concept and core color tone.",
-        verdict: {
-          ...parsed.verdict,
-          engineSource: 'gemini_vision',
-          overallScore: parsedScore,
-          scoreReason: parsedReason,
-          firstImpression: parsed.verdict?.firstImpression || parsed.firstImpression?.professional || "A distinctive visual composition.",
-          whatWorks: parsed.verdict?.whatWorks || parsed.whatWorks?.evidence || "Strong overall graphic foundation.",
-          biggestProblem: parsed.verdict?.biggestProblem || (parsed.biggestProblem ? `${parsed.biggestProblem.title}: ${parsed.biggestProblem.evidence}` : "Visual hierarchy competes for attention."),
-          otherIssues: Array.isArray(parsed.verdict?.otherIssues) ? parsed.verdict.otherIssues : (parsed.otherIssues ? parsed.otherIssues.map((o: any) => o.title || o.evidence) : []),
-          howToFixIt: parsed.verdict?.howToFixIt || parsed.biggestProblem?.fix || "Clarify the primary focal point.",
-          whatToPreserve: parsed.verdict?.whatToPreserve || parsed.whatToPreserve || "Core artistic concept and palette foundation.",
-          professional: parsed.verdict?.professional || parsed.firstImpression?.professional || "A measured composition with clear conceptual intent.",
-          unreliable: parsed.verdict?.unreliable || parsed.firstImpression?.unreliable || "An interesting artistic statement."
-        },
-        generatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-    } catch (err: any) {
-      console.error('[Critique Engine] Gemini API vision call failed:', err?.message || err);
-      apiErrorMessage = err?.message || 'Gemini Vision API request failed';
-    }
+        overallScore: parsedScore,
+        scoreReason: parsedReason,
+        firstImpression: parsed.verdict?.firstImpression || parsed.firstImpression?.professional || "A distinctive visual composition.",
+        whatWorks: parsed.verdict?.whatWorks || parsed.whatWorks?.evidence || "Strong overall graphic foundation.",
+        biggestProblem: parsed.verdict?.biggestProblem || (parsed.biggestProblem ? `${parsed.biggestProblem.title}: ${parsed.biggestProblem.evidence}` : "Visual hierarchy competes for attention."),
+        otherIssues: Array.isArray(parsed.verdict?.otherIssues) ? parsed.verdict.otherIssues : (parsed.otherIssues ? parsed.otherIssues.map((o: any) => o.title || o.evidence) : []),
+        howToFixIt: parsed.verdict?.howToFixIt || parsed.biggestProblem?.fix || "Clarify the primary focal point.",
+        whatToPreserve: parsed.verdict?.whatToPreserve || parsed.whatToPreserve || "Core artistic concept and palette foundation.",
+        professional: parsed.verdict?.professional || parsed.firstImpression?.professional || "A measured composition with clear conceptual intent.",
+        unreliable: parsed.verdict?.unreliable || parsed.firstImpression?.unreliable || "An interesting artistic statement."
+      },
+      generatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  } catch (err: any) {
+    console.error('[Critique Engine] Live AI Vision critique failed:', err?.message || err);
+    apiErrorMessage = err?.message || 'Gemini Vision API request failed';
   }
 
   // Fallback to Autonomous Engine with memory, pixel telemetry and prior history context
@@ -462,46 +230,41 @@ export async function respondToDefense(
   artwork: Artwork,
   userDefense: string,
   stage: CriticStage,
-  previousCritique: CritiqueData,
-  customApiKey?: string
+  previousCritique: CritiqueData
 ): Promise<{
   reply: string;
   unreliableNote?: string;
   verdictReconsidered: boolean;
   updatedVerdictScore?: number;
 }> {
-  const key = customApiKey || getStoredApiKey();
+  try {
+    const { mimeType, base64 } = await ensureRasterBase64(artwork.dataUrl);
+    const res = await callBackendApi('defend', {
+      image: { mimeType, base64 },
+      category: artwork.category,
+      userDefense,
+      stage,
+      previousCritique: {
+        score: previousCritique.verdict.overallScore,
+        biggestProblem: previousCritique.biggestProblem,
+        whatWorks: previousCritique.whatWorks,
+        verdict: {
+          overallScore: previousCritique.verdict.overallScore,
+          biggestProblem: previousCritique.verdict.biggestProblem
+        }
+      }
+    });
 
-  if (key) {
+    // Record user defense to memory
     try {
-      const prompt = `
-You are THE UNRELIABLE ART CRITIC. The artist is explaining their creative intent and defending their design decisions after receiving your critique.
-Artwork category: "${artwork.category}".
-Artist's defense: "${userDefense}"
-Previous verdict score: ${previousCritique.verdict.overallScore}/10.
-
-INSTRUCTIONS:
-- Directly evaluate the logic of their explanation against visual design principles.
-- Distinguish deliberate, intentional decisions from accidental weaknesses.
-- Do NOT automatically agree with the artist, and do NOT automatically defend your original critique.
-- If they explain a legitimate functional or artistic reason (e.g. intentional dissonance, specific audience, deliberate contrast, brutalist tension), concede with professional respect, explain how it reframes the piece, and increase the score by 1 point (set "verdictReconsidered": true).
-- If their argument is an excuse for poor legibility, lack of hierarchy, or sloppy alignment, explain why the eye still records the visual failure regardless of intention (set "verdictReconsidered": false).
-- "reply": Professional art director response. Direct, concise, no jargon.
-- "unreliableNote": Short witty character reaction (1 sentence).
-
-Respond with valid JSON:
-{
-  "reply": "<Direct evaluation of their argument and visual evidence>",
-  "unreliableNote": "<Witty short character comment>",
-  "verdictReconsidered": <boolean>,
-  "updatedVerdictScore": <number 1-10>
-}
-`;
-      const raw = await callGeminiApi(prompt, artwork.dataUrl, key, true);
-      return JSON.parse(raw);
-    } catch (e: any) {
-      console.warn('[Critic Engine] Gemini defense failed, using heuristic:', e?.message || e);
+      recordCritiqueToMemory(artwork, previousCritique, userDefense);
+    } catch (err) {
+      console.warn('Failed to record defense to memory:', err);
     }
+
+    return res;
+  } catch (e: any) {
+    console.warn('[Critic Engine] AI Vision defense failed, using heuristic fallback:', e?.message || e);
   }
 
   // Heuristic Defense Logic with Real Evidence
@@ -555,34 +318,25 @@ export async function respondToChallenge(
   artwork: Artwork,
   userChallenge: string,
   stage: CriticStage,
-  customApiKey?: string
+  previousCritique?: CritiqueData
 ): Promise<{ reply: string; unreliableNote?: string }> {
-  const key = customApiKey || getStoredApiKey();
+  try {
+    const { mimeType, base64 } = await ensureRasterBase64(artwork.dataUrl);
+    const res = await callBackendApi('challenge', {
+      image: { mimeType, base64 },
+      category: artwork.category,
+      userChallenge,
+      stage,
+      previousCritique: previousCritique ? {
+        verdict: {
+          biggestProblem: previousCritique.verdict.biggestProblem
+        }
+      } : undefined
+    });
 
-  if (key) {
-    try {
-      const prompt = `
-You are THE UNRELIABLE ART CRITIC. The user is disputing or challenging your critique:
-User's challenge: "${userChallenge}".
-Artwork: ${artwork.category}, Dimensions: ${artwork.analysis.aspectRatio}.
-Stage: ${stage} (1=Composed, 2=Pretentious, 3=Suspicious, 4=Unstable, 5=Breakdown).
-
-INSTRUCTIONS:
-- Reconsider the visual evidence in the artwork and explain whether your original judgement still holds.
-- Acknowledge valid objections and correct mistakes if the user is visually correct.
-- If their challenge ignores fundamental design principles (hierarchy, contrast, balance, reading order), defend your critique with clear, sharp graphic design principles.
-- Use direct, familiar language. Avoid obscure metaphors.
-- Return valid JSON:
-{
-  "reply": "<Professional reconsideration or defense grounded in visual evidence>",
-  "unreliableNote": "<Witty 1-sentence character line matching stage ${stage}>"
-}
-`;
-      const raw = await callGeminiApi(prompt, artwork.dataUrl, key, true);
-      return JSON.parse(raw);
-    } catch (e: any) {
-      console.warn('[Critic Engine] Gemini challenge failed, using heuristic reply:', e?.message || e);
-    }
+    return res;
+  } catch (e: any) {
+    console.warn('[Critic Engine] AI Vision challenge failed, using heuristic fallback:', e?.message || e);
   }
 
   const lower = userChallenge.toLowerCase();
@@ -612,83 +366,25 @@ INSTRUCTIONS:
 export async function generateRedesignBrief(
   artwork: Artwork,
   stage: CriticStage,
-  customApiKey?: string
+  previousCritique?: CritiqueData
 ): Promise<RedesignDirection[]> {
-  const key = customApiKey || getStoredApiKey();
+  try {
+    const { mimeType, base64 } = await ensureRasterBase64(artwork.dataUrl);
+    const parsed = await callBackendApi('redesign', {
+      image: { mimeType, base64 },
+      category: artwork.category,
+      statement: artwork.statement,
+      previousCritique: previousCritique ? {
+        biggestProblem: previousCritique.biggestProblem,
+        whatWorks: previousCritique.whatWorks
+      } : undefined
+    });
 
-  if (key) {
-    try {
-      const prompt = `
-You are a master creative director. Formulate three distinct, highly actionable redesign directions for this ${artwork.category}, grounded in the ACTUAL visual elements of the uploaded artwork:
-Dominant colors: ${artwork.analysis.dominantColors.join(', ')}.
-Aspect ratio: ${artwork.analysis.aspectRatio}.
-Artist statement: "${artwork.statement || 'None provided'}".
-
-INSTRUCTIONS:
-- Suggest distinct creative directions:
-  01 RESTRAINT (Minimalist reduction, negative space, pure hierarchy)
-  02 DISTORTION (Calculated tension, dynamic asymmetry, high contrast)
-  03 REINTERPRETATION (Editorial formalism, structural realignment)
-- For each direction:
-  - Explain what would change from the current artwork ("whatChanges").
-  - Explain why that change might work for this specific design ("whyItWorks").
-  - State which existing visual qualities should be preserved ("whatToPreserve").
-  - Provide 3 concrete production steps.
-
-Return ONLY valid JSON matching this schema:
-[
-  {
-    "number": "01",
-    "code": "RESTRAINT",
-    "title": "Minimalist Reduction & Spatial Discipline",
-    "concept": "<Concise concept focusing on negative space and pure hierarchy>",
-    "whatChanges": "<Specific changes from current design>",
-    "whyItWorks": "<Why this works for the category and concept>",
-    "whatToPreserve": "<Which existing quality to keep>",
-    "colourTreatment": "<Palette reduction>",
-    "composition": "<Clean grid realignment>",
-    "typography": "<Tight font pairing>",
-    "textureAndEffects": "<Zero noise / pure flat or minimal finish>",
-    "actionableSteps": ["<Specific step 1>", "<Specific step 2>", "<Specific step 3>"]
-  },
-  {
-    "number": "02",
-    "code": "DISTORTION",
-    "title": "Calculated Tension & Dynamic Contrast",
-    "concept": "<Direction using intentional asymmetry and bold contrast>",
-    "whatChanges": "<Specific changes from current design>",
-    "whyItWorks": "<Why this works for the category and concept>",
-    "whatToPreserve": "<Which existing quality to keep>",
-    "colourTreatment": "<High friction palette>",
-    "composition": "<Dynamic asymmetric layout>",
-    "typography": "<Bold expressive type treatment>",
-    "textureAndEffects": "<Dither, grain or analog texture>",
-    "actionableSteps": ["<Specific step 1>", "<Specific step 2>", "<Specific step 3>"]
-  },
-  {
-    "number": "03",
-    "code": "REINTERPRETATION",
-    "title": "Editorial Architectural Formalism",
-    "concept": "<Fresh conceptual angle restructuring the entire hierarchy>",
-    "whatChanges": "<Specific changes from current design>",
-    "whyItWorks": "<Why this works for the category and concept>",
-    "whatToPreserve": "<Which existing quality to keep>",
-    "colourTreatment": "<Monochrome or high-fashion duotone>",
-    "composition": "<Strict columnar layout>",
-    "typography": "<Display serif with clean sans captions>",
-    "textureAndEffects": "<Matte editorial print finish>",
-    "actionableSteps": ["<Specific step 1>", "<Specific step 2>", "<Specific step 3>"]
-  }
-]
-`;
-      const raw = await callGeminiApi(prompt, artwork.dataUrl, key, true);
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length >= 3) {
-        return parsed;
-      }
-    } catch (e: any) {
-      console.warn('[Critic Engine] Gemini redesign failed, using heuristic briefs:', e?.message || e);
+    if (Array.isArray(parsed) && parsed.length >= 3) {
+      return parsed;
     }
+  } catch (e: any) {
+    console.warn('[Critic Engine] AI Vision redesign failed, using heuristic fallback:', e?.message || e);
   }
 
   const { analysis, category } = artwork;
@@ -757,87 +453,48 @@ Return ONLY valid JSON matching this schema:
 // 5. BRUTAL TRUTH (RELIABLE ART DIRECTOR AUDIT)
 // =========================================================================
 export async function generateBrutalTruth(
-  artwork: Artwork,
-  customApiKey?: string
+  artwork: Artwork
 ): Promise<BrutalTruthData> {
-  const key = customApiKey || getStoredApiKey();
+  try {
+    const { mimeType, base64 } = await ensureRasterBase64(artwork.dataUrl);
+    const parsed = await callBackendApi('brutal_truth', {
+      image: { mimeType, base64 },
+      category: artwork.category,
+      statement: artwork.statement
+    });
 
-  if (key) {
-    try {
-      const prompt = `
-Act as an experienced NO-NONSENSE SENIOR ART DIRECTOR conducting an urgent, high-stakes design critique of the uploaded image.
-Category: "${artwork.category}".
-Image data: Aspect ratio ${artwork.analysis.aspectRatio}, Brightness: ${artwork.analysis.brightnessLevel}, Contrast: ${artwork.analysis.contrastLevel}, Dominant colors: ${artwork.analysis.dominantColors.join(', ')}.
+    const result: BrutalTruthData = {
+      hardTruth: parsed.hardTruth || 'The primary message is obscured by competing visual elements.',
+      evidence: Array.isArray(parsed.evidence) && parsed.evidence.length >= 2 ? parsed.evidence : [
+        'The primary subject and secondary elements share similar visual contrast.',
+        'Negative space around the borders is uneven and crowded.'
+      ],
+      whyItsNotWorking: parsed.whyItsNotWorking || 'The viewer cannot immediately tell where to look first.',
+      whatToFixFirst: Array.isArray(parsed.whatToFixFirst) && parsed.whatToFixFirst.length === 3 ? parsed.whatToFixFirst : [
+        'Increase size contrast between primary and secondary elements by at least 30%.',
+        'Add 15% more padding around the outer boundaries.',
+        'Limit the color palette to one primary focal accent.'
+      ],
+      whatToKeep: parsed.whatToKeep || 'The core conceptual premise and dominant color selection.',
+      engineSource: 'gemini_vision',
+      strongestElements: Array.isArray(parsed.evidence) ? parsed.evidence : ['Visual concept', 'Color foundation', 'Aspect format'],
+      keyImprovements: Array.isArray(parsed.whatToFixFirst) ? parsed.whatToFixFirst : ['Hierarchy', 'Margins', 'Contrast'],
+      highestImpactChange: parsed.whatToFixFirst?.[0] || 'Clarify the focal point hierarchy immediately.',
+      directorNotes: parsed.hardTruth || 'Focus on your core message.'
+    };
 
-${getCategoryEvaluationFocus(artwork.category)}
-
-INSTRUCTIONS:
-- Be direct, specific, and technically precise.
-- Base every single observation on concrete visual evidence in this image.
-- Criticise the design, not the designer.
-- Do NOT exaggerate weaknesses to sound brutal. If the artwork is strong, acknowledge it directly.
-- Avoid vague advice like "improve hierarchy"; explain exactly what to change and why.
-
-STRUCTURE TO FOLLOW STRICTLY:
-1. THE HARD TRUTH: One direct sentence identifying the biggest problem of this design.
-2. THE EVIDENCE: Two or three specific observations from the artwork.
-3. WHY IT MATTERS: Direct explanation of how the problem affects the intended result or communication.
-4. FIX THESE FIRST: The three highest-priority changes, ordered by importance.
-5. KEEP THIS: The single strongest existing design decision that must NOT be lost during revision.
-
-Return ONLY valid JSON matching this schema:
-{
-  "hardTruth": "<One direct sentence identifying the biggest problem of this design>",
-  "evidence": [
-    "<Concrete observation 1 from the artwork>",
-    "<Concrete observation 2 from the artwork>",
-    "<Concrete observation 3 from the artwork>"
-  ],
-  "whyItsNotWorking": "<Direct explanation of how the problem affects the intended result or communication>",
-  "whatToFixFirst": [
-    "<1st highest-priority change, ordered by importance>",
-    "<2nd highest-priority change>",
-    "<3rd highest-priority change>"
-  ],
-  "whatToKeep": "<The single strongest existing design decision that must NOT be lost during revision>"
-}
-`;
-      const raw = await callGeminiApi(prompt, artwork.dataUrl, key, true);
-      const parsed = JSON.parse(raw);
-
-      const result: BrutalTruthData = {
-        hardTruth: parsed.hardTruth || 'The primary message is obscured by competing visual elements.',
-        evidence: Array.isArray(parsed.evidence) && parsed.evidence.length >= 2 ? parsed.evidence : [
-          'The primary subject and secondary elements share similar visual contrast.',
-          'Negative space around the borders is uneven and crowded.'
-        ],
-        whyItsNotWorking: parsed.whyItsNotWorking || 'The viewer cannot immediately tell where to look first.',
-        whatToFixFirst: Array.isArray(parsed.whatToFixFirst) && parsed.whatToFixFirst.length === 3 ? parsed.whatToFixFirst : [
-          'Increase size contrast between primary and secondary elements by at least 30%.',
-          'Add 15% more padding around the outer boundaries.',
-          'Limit the color palette to one primary focal accent.'
-        ],
-        whatToKeep: parsed.whatToKeep || 'The core conceptual premise and dominant color selection.',
-        engineSource: 'gemini_vision',
-        strongestElements: Array.isArray(parsed.evidence) ? parsed.evidence : ['Visual concept', 'Color foundation', 'Aspect format'],
-        keyImprovements: Array.isArray(parsed.whatToFixFirst) ? parsed.whatToFixFirst : ['Hierarchy', 'Margins', 'Contrast'],
-        highestImpactChange: parsed.whatToFixFirst?.[0] || 'Clarify the focal point hierarchy immediately.',
-        directorNotes: parsed.hardTruth || 'Focus on your core message.'
-      };
-
-      if (artwork.id) {
-        getArchiveRecordById(artwork.id).then((rec) => {
-          if (rec) {
-            rec.brutalTruth = result;
-            saveArchiveRecord(rec).catch(() => {});
-          }
-        }).catch(() => {});
-      }
-
-      return result;
-    } catch (e: any) {
-      console.warn('[Critic Engine] Gemini brutal truth failed, using evidence-based heuristic fallback:', e?.message || e);
+    if (artwork.id) {
+      getArchiveRecordById(artwork.id).then((rec) => {
+        if (rec) {
+          rec.brutalTruth = result;
+          saveArchiveRecord(rec).catch(() => {});
+        }
+      }).catch(() => {});
     }
+
+    return result;
+  } catch (e: any) {
+    console.warn('[Critic Engine] AI Vision Brutal Truth failed, using heuristic fallback:', e?.message || e);
   }
 
   // Robust, Evidence-Based Heuristic Brutal Truth Fallback
@@ -973,13 +630,12 @@ function generateHeuristicCritique(
   const { analysis, category, statement } = artwork;
   const isDark = analysis.brightnessLevel === 'dark';
   const isHighContrast = analysis.contrastLevel === 'extreme';
-  const isDense = analysis.estimatedComplexity === 'dense';
   const balance = analysis.horizontalBalance || 'centered';
   const vBalance = analysis.verticalBalance || 'centered';
   const mainColor = analysis.dominantColors[0] || '#0A0A0A';
   const accentColor = analysis.dominantColors[1] || '#D71920';
 
-  // Check statement & memory for stated aesthetic preferences (e.g. deliberate asymmetry or brutalism)
+  // Check statement & memory for stated aesthetic preferences
   const statementText = (statement || '').toLowerCase();
   const hasAsymmetryPref =
     statementText.includes('asymmetry') ||
@@ -993,12 +649,11 @@ function generateHeuristicCritique(
       m => m.title.toLowerCase().includes('asymmetry') || m.description.toLowerCase().includes('asymmetric') || m.title.toLowerCase().includes('brutal')
     );
 
-  // Compute defensible score based on real balance, margins, and contrast metrics
+  // Compute score based on balance, margins, and contrast metrics
   let calculatedScore = 7;
   let deductions = 0;
   let primaryScoreReason = '';
 
-  // Do not penalize for deliberate asymmetry!
   if (balance !== 'centered' && !hasAsymmetryPref) deductions += 0.5;
   if (vBalance !== 'centered' && !hasAsymmetryPref) deductions += 0.5;
   if (analysis.edgeDensity === 'edge-crowded' && category === 'Branding') deductions += 0.5;
@@ -1029,16 +684,16 @@ function generateHeuristicCritique(
     }
   }
 
-  // 1. First Impression (Image-specific & Category-adapted)
+  // 1. First Impression
   let firstImpressionProf = '';
   if (category === 'Poster') {
     firstImpressionProf = `A bold Swiss modernist editorial statement. The high-contrast palette (${mainColor} and ${accentColor}) establishes immediate impact, commanding attention across the ${analysis.aspectRatio} format.`;
   } else if (category === 'Album cover') {
-    firstImpressionProf = `An intensely atmospheric, claustrophobic visual statement tailored for an experimental soundscape. The ${analysis.aspectRatio} square format is anchored by a stark geometric silhouette against deep black (${mainColor}).`;
+    firstImpressionProf = `An intensely atmospheric visual statement tailored for an experimental soundscape. The ${analysis.aspectRatio} format is anchored by a stark geometric silhouette against ${mainColor}.`;
   } else if (category === 'Illustration') {
-    firstImpressionProf = `An expressive, high-tension figurative study. The contrast between the stark light field and deep silhouette shapes (${mainColor} and ${accentColor}) creates an immediate graphic punch across the ${analysis.aspectRatio} format.`;
+    firstImpressionProf = `An expressive figurative study. The contrast between the light field and deep silhouette shapes (${mainColor} and ${accentColor}) creates an immediate graphic punch across the ${analysis.aspectRatio} format.`;
   } else if (category === 'Typography') {
-    firstImpressionProf = `A sharp, conceptually rigorous typographic study. The dialogue between redacted rectangular blocks and editorial letterforms creates immediate intellectual intrigue.`;
+    firstImpressionProf = `A sharp, conceptually rigorous typographic study. The dialogue between rectangular blocks and editorial letterforms creates immediate intellectual intrigue.`;
   } else {
     firstImpressionProf = isDark
       ? `A restrained, low-key visual statement. The dark value distribution (${mainColor}) commands immediate mood across the ${analysis.aspectRatio} format.`
@@ -1058,7 +713,7 @@ function generateHeuristicCritique(
       ? "The headline and subtitle compete for attention because their optical weights are too close."
       : "The layout is balanced, but the focal point is holding its breath.";
 
-  // 2. What Works (Image-Specific Evidence)
+  // 2. What Works
   let whatWorksTitle = '';
   let whatWorksEvidence = '';
 
@@ -1067,7 +722,7 @@ function generateHeuristicCritique(
     whatWorksEvidence = `Stark value separation between the dominant dark field (${mainColor}) and crisp light elements creates an immediate first-order visual hierarchy for reading from a distance.`;
   } else if (category === 'Album cover') {
     whatWorksTitle = "Resonant iconic silhouette for small-screen scale";
-    whatWorksEvidence = `The stark central polygon and vertical crimson axis line (${accentColor}) retain immediate recognition even when reduced to mobile streaming thumbnail scale.`;
+    whatWorksEvidence = `The stark central silhouette and vertical crimson axis line (${accentColor}) retain immediate recognition even when reduced to mobile streaming thumbnail scale.`;
   } else if (category === 'Illustration') {
     whatWorksTitle = "Expressive silhouette & deliberate tonal friction";
     whatWorksEvidence = `The dynamic shape language and stark contrast threshold between the figure and background field establish genuine psychological presence.`;
@@ -1079,7 +734,7 @@ function generateHeuristicCritique(
     whatWorksEvidence = `The dominant palette (${analysis.dominantColors.slice(0, 2).join(' and ')}) establishes clear visual mood within the ${analysis.aspectRatio} format.`;
   }
 
-  // 3. Biggest Problem (OBSERVATION → EVIDENCE → CONSEQUENCE → FIX)
+  // 3. Biggest Problem
   let biggestProblemTitle = '';
   let biggestProblemEvidence = '';
   let biggestProblemConsequence = '';
@@ -1092,7 +747,7 @@ function generateHeuristicCritique(
     biggestProblemFix = "Reduce the optical weight or opacity of secondary metadata by 20% to give undivided priority to the primary message.";
   } else if (category === 'Album cover') {
     biggestProblemTitle = "Foreground/background edge compression";
-    biggestProblemEvidence = `Subtle midtone values between the central geometric silhouette and the ${mainColor} field rely on narrow luminance steps.`;
+    biggestProblemEvidence = `Subtle midtone values between the central silhouette and the ${mainColor} field rely on narrow luminance steps.`;
     biggestProblemConsequence = "Under lower screen brightness, the subtle boundary risks compressing into a flat shadow block on uncalibrated mobile displays.";
     biggestProblemFix = "Lift the luminance of the polygon stroke or boundary line by 10% to guarantee silhouette isolation.";
   } else if (category === 'Illustration') {
@@ -1144,7 +799,7 @@ function generateHeuristicCritique(
     `Ensure the accent tone (${accentColor}) remains concentrated on the primary visual entry point.`
   ];
 
-  // 7. Composition (Observation -> Evidence -> Consequence -> Fix)
+  // 7. Composition
   const compObs = hasAsymmetryPref
     ? "Intentional asymmetric optical tension"
     : "Structured lateral visual balance";
@@ -1197,6 +852,7 @@ function generateHeuristicCritique(
     },
     biggestProblem: {
       title: biggestProblemTitle,
+      observation: biggestProblemTitle,
       evidence: biggestProblemEvidence,
       consequence: biggestProblemConsequence,
       fix: biggestProblemFix

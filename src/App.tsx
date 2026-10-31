@@ -565,6 +565,7 @@ export const App: React.FC = () => {
             <RedesignStep
               artwork={currentArtwork}
               currentStage={currentStage}
+              currentCritique={currentCritique}
               onReturnToVerdict={() => setCurrentStep('VERDICT')}
               speechText={speechText}
               forcedExpression={forcedExpression}
